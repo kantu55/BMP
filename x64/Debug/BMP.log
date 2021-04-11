@@ -1,0 +1,12 @@
+﻿  bitmap.c
+c:\users\kiurakanta\desktop\bmp\bitmap.c : warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。
+c:\users\kiurakanta\desktop\bmp\bitmap.h : warning C4819: ファイルは、現在のコード ページ (932) で表示できない文字を含んでいます。データの損失を防ぐために、ファイルを Unicode 形式で保存してください。
+c:\users\kiurakanta\desktop\bmp\bitmap.c(48): warning C4013: 関数 'malloc' は定義されていません。int 型の値を返す外部関数と見なします。
+c:\users\kiurakanta\desktop\bmp\bitmap.c(48): warning C4312: '型キャスト': 'int' からより大きいサイズの 'unsigned char *' へ変換します。
+c:\users\kiurakanta\desktop\bmp\bitmap.c(55): warning C4013: 関数 'free' は定義されていません。int 型の値を返す外部関数と見なします。
+c:\users\kiurakanta\desktop\bmp\bitmap.c(146): warning C4312: '型キャスト': 'int' からより大きいサイズの 'unsigned char *' へ変換します。
+c:\users\kiurakanta\desktop\bmp\bitmap.c(153): warning C4018: '<': signed と unsigned の数値を比較しようとしました。
+c:\users\kiurakanta\desktop\bmp\bitmap.c(154): warning C4018: '<': signed と unsigned の数値を比較しようとしました。
+c:\users\kiurakanta\desktop\bmp\bitmap.c(176): warning C4312: '型キャスト': 'int' からより大きいサイズの 'Image *' へ変換します。
+c:\users\kiurakanta\desktop\bmp\bitmap.c(181): warning C4312: '型キャスト': 'int' からより大きいサイズの 'Rgb *' へ変換します。
+  BMP.vcxproj -> C:\Users\kiurakanta\Desktop\BMP\x64\Debug\BMP.exe
