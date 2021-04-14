@@ -1,32 +1,50 @@
-#ifndef __BITMAP_H_INCLUDED__
-#define __BITMAP_H_INCLUDED__
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#define HEADERSIZE   54               /* ƒwƒbƒ_‚ÌƒTƒCƒY 54 = 14 + 40         */
+#define PALLETSIZE 1024               /* ƒpƒŒƒbƒg‚ÌƒTƒCƒY                    */
+#define MAXWIDTH   4096               /* •(pixel)‚ÌãŒÀ                     */
+#define MAXHEIGHT  4096               /* ‚‚³(pixel) ‚ÌãŒÀ                  */
 
-#define FILEHEADERSIZE 14					//¥Õ¥¡¥¤¥EØ¥Ã¥À¤Î¥µ¥¤¥º
-#define INFOHEADERSIZE 40					//¾ğÊó¥Ø¥Ã¥À¤Î¥µ¥¤¥º
-#define HEADERSIZE (FILEHEADERSIZE+INFOHEADERSIZE)
+/* x ‚Æ y ‚ÌŒğŠ·‚Ì‚½‚ß‚Ì ƒ}ƒNƒŠÖ” */
+#define SWAP(x,y) {typeof(x) temp; temp=x; x=y; y=temp;}
 
-typedef struct {
-	unsigned char b;
-	unsigned char g;
+unsigned char Bmp_headbuf[HEADERSIZE];/* ƒwƒbƒ_‚ğŠi”[‚·‚é‚½‚ß‚Ì•Ï”          */
+unsigned char Bmp_Pallet[PALLETSIZE]; /* ƒJƒ‰[ƒpƒŒƒbƒg‚ğŠi”[                */
+
+char Bmp_type[2];                     /* ƒtƒ@ƒCƒ‹ƒ^ƒCƒv "BM"                 */
+unsigned long Bmp_size;               /* bmpƒtƒ@ƒCƒ‹‚ÌƒTƒCƒY (ƒoƒCƒg)        */
+unsigned int Bmp_info_header_size; /* î•ñƒwƒbƒ_‚ÌƒTƒCƒY = 40             */
+unsigned int Bmp_header_size;      /* ƒwƒbƒ_ƒTƒCƒY = 54*/
+long Bmp_height;                      /* ‚‚³ (ƒsƒNƒZƒ‹)                     */
+long Bmp_width;                       /* •   (ƒsƒNƒZƒ‹)                     */
+unsigned short Bmp_planes;          /* ƒvƒŒ[ƒ“” í‚É 1                   */
+unsigned short Bmp_color;          /* F (ƒrƒbƒg)     24                  */
+long Bmp_comp;                        /* ˆ³k•û–@         0                  */
+long Bmp_image_size;                  /* ‰æ‘œ•”•ª‚Ìƒtƒ@ƒCƒ‹ƒTƒCƒY (ƒoƒCƒg)   */
+long Bmp_xppm;                        /* …•½‰ğ‘œ“x (ppm)                    */
+long Bmp_yppm;                        /* ‚’¼‰ğ‘œ“x (ppm)                    */
+
+typedef struct {                      /* 1ƒsƒNƒZƒ‹‚ ‚½‚è‚ÌÔ—ÎÂ‚ÌŠe‹P“x     */
 	unsigned char r;
-}Rgb;
+	unsigned char g;
+	unsigned char b;
+} color;
 
 typedef struct {
-	unsigned int height;
-	unsigned int width;
-	Rgb *data;
-}Image;
+	long height;
+	long width;
+	color data[MAXHEIGHT][MAXWIDTH];
+} img;
 
-//¼èÆÀ¤ËÀ®¸ù¤¹¤EĞ¥İ¥¤¥ó¥¿¤ò¼ºÇÔ¤¹¤EĞNULL¤òÊÖ¤¹
-Image *Read_Bmp(char *filename);
-
-//½ñ¤­¹ş¤ß¤ËÀ®¸ù¤¹¤EĞ0¤ò¼ºÇÔ¤¹¤EĞ1¤òÊÖ¤¹
-int Write_Bmp(char *filename, Image *img);
-
-//Image¤òºûÜ®¤·¡¢RGB¾ğÊó¤âwidth*heightÊ¬¤À¤±Æ°Åª¤Ë¼èÆÀ¤¹¤E£
-//À®¸ù¤¹¤EĞ¥İ¥¤¥ó¥¿¤ò¡¢¼ºÇÔ¤¹¤EĞNULL¤òÊÖ¤¹
-Image *Create_Image(int width, int height);
-//Image¤ò²òË¡¤¹¤E
-void Free_Image(Image *img);
-
-#endif /*__BITMAP_H_INCLUDED__*/
+void ReadBmp(char *filename, img *imgp);
+void WriteBmp(char *filename, img *tp);
+void PrintBmpInfo(char *filename);
+void HMirror(img *sp, img *tp);
+void VMirror(img *sp, img *tp);
+void Rotate90(int a, img *sp, img *tp);
+void Shrink(int a, img *sp, img *tp);
+void Mosaic(int a, img *sp, img *tp);
+void Gray(img *sp, img *tp);
+void Diminish(img *sp, img *tp, unsigned char x);
+void WriteImg(char* filename, img *tp);

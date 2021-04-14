@@ -1,203 +1,429 @@
 #define _CRT_SECURE_NO_WARNINGS
+#include "bitmap.h"
 
-#include<stdio.h>
-#include<string.h>
-#include<math.h>
-#include"bitmap.h"
+/*
+   ŠÖ”–¼: ReadBmp
+   ˆø”  : char *filename, img *imgp
+   •Ô‚è’l: void
+   “®ì  : bmpŒ`®‚Ìƒtƒ@ƒCƒ‹ filename ‚ğŠJ‚¢‚Ä, ‚»‚Ì‰æ‘œƒf[ƒ^‚ğ
+		   2ŸŒ³”z—ñ imgp->data ‚ÉŠi”[‚·‚é. “¯‚É, ƒwƒbƒ_‚©‚ç“Ç‚İ‚Ü‚ê‚½
+		   ‰æ‘œ‚Ì•‚Æ‚‚³‚ğƒOƒ[ƒoƒ‹•Ï” Bmp_width ‚ÆBmp_height ‚ÉƒZƒbƒg‚·‚é.
+*/
+void ReadBmp(char *filename, img *imgp) {
+	int i, j;
+	int Real_width;
+	FILE *Bmp_Fp = fopen(filename, "rb");  /* ƒoƒCƒiƒŠƒ‚[ƒh“Ç‚İ‚İ—p‚ÉƒI[ƒvƒ“  */
+	unsigned char *Bmp_Data;           /* ‰æ‘œƒf[ƒ^‚ğ1s•ªŠi”[               */
 
-//filename¤ÎBitmap¥Õ¥¡¥¤¥EòÆÉ¤ß¹ş¤ß¡¢¹â¤µ¤ÈÉı¡¢RGB¾ğÊó¤òimg¹½Â¤ÂÎ¤ËÆş¤EE
-Image *Read_Bmp(char *filename)
-{
-	unsigned int i = 0;
-	unsigned int j = 0;
-	int real_width;					//¥Ç¡¼¥¿¾å¤Î1¹ÔÊ¬¤Î¥Ğ¥¤¥È¿E
-	unsigned int width, height;			//²èÁEÎ²£¤È½Ä¤Î¥Ô¥¯¥»¥EE
-	unsigned int color;			//²¿bit¤ÎBitmap¥Õ¥¡¥¤¥EÇ¤¢¤E«
-	FILE *fp;
-	unsigned char header_buf[HEADERSIZE];	//¥Ø¥Ã¥À¾ğÊó¤ò¼è¤Eş¤E
-	unsigned char *bmp_line_data;  //²èÁEÇ¡¼¥¿1¹ÔÊ¬
-	Image *img;
-
-	if ((fp = fopen(filename, "rb")) == NULL) {
-		fprintf(stderr, "Error: %s could not read.", filename);
-		return NULL;
+	if (Bmp_Fp == NULL) {
+		fprintf(stderr, "Error: file %s couldn\'t open for read!.\n", filename);
+		exit(1);
 	}
 
-	fread(header_buf, sizeof(unsigned char), HEADERSIZE, fp); //¥Ø¥Ã¥ÀÉôÊ¬Á´¤Æ¤ò¼è¤Eş¤E
-	//ºÇ½é¤Î2¥Ğ¥¤¥È¤¬BM(Bitmap¥Õ¥¡¥¤¥EÎ°E¤Ç¤¢¤E«
-	if (strncmp(header_buf, "BM", 2)) 
-	{
-		fprintf(stderr, "Error: %s is not Bitmap file.", filename);
-		return NULL;
+	/* ƒwƒbƒ_“Ç‚İ‚İ */
+	fread(Bmp_headbuf, sizeof(unsigned char), HEADERSIZE, Bmp_Fp);
+
+	memcpy(&Bmp_type, Bmp_headbuf, sizeof(Bmp_type));
+	if (strncmp(Bmp_type, "BM", 2) != 0) {
+		fprintf(stderr, "Error: %s is not a bmp file.\n", filename);
+		exit(1);
 	}
 
-	memcpy(&width, header_buf + 18, sizeof(img->width)); //²èÁEÎ¸«¤¿ÌÜ¾å¤ÎÉı¤ò¼èÆÀ
-	memcpy(&height, header_buf + 22, sizeof(img->height)); //²èÁEÎ¹â¤µ¤ò¼èÆÀ
-	memcpy(&color, header_buf + 28, sizeof(unsigned int)); //²¿bit¤ÎBitmap¤Ç¤¢¤E«¤ò¼èÆÀ
-
-	printf("%d\n", color);
-
-	if (color != 8 && color != 4) {
-		fprintf(stderr, "Error: %s is not 24bit color image", filename);
-		return NULL;
+	memcpy(&imgp->width, Bmp_headbuf + 18, sizeof(Bmp_width));
+	memcpy(&imgp->height, Bmp_headbuf + 22, sizeof(Bmp_height));
+	memcpy(&Bmp_color, Bmp_headbuf + 28, sizeof(Bmp_color));
+	if (Bmp_color != 24) {
+		fprintf(stderr, "Error: Bmp_color = %d is not implemented in this program.\n", Bmp_color);
+		exit(1);
 	}
 
-	real_width = width * 3 + width % 4;
-
-
-	//²èÁEÎ1¹ÔÊ¬¤ÎRGB¾ğÊó¤ò¼è¤Ã¤Æ¤¯¤E¿¤á¤Î¥Ğ¥Ã¥Õ¥¡¤òÆ°Åª¤Ë¼èÆÀ
-	if ((bmp_line_data = (unsigned char *)malloc(sizeof(unsigned char)*real_width)) == NULL) {
-		fprintf(stderr, "Error: Allocation error.\n");
-		return NULL;
+	if (imgp->width > MAXWIDTH) {
+		fprintf(stderr, "Error: Bmp_width = %ld > %d = MAXWIDTH!\n", Bmp_width, MAXWIDTH);
+		exit(1);
 	}
 
-	//RGB¾ğÊó¤ò¼è¤Eş¤à¤¿¤á¤Î¥Ğ¥Ã¥Õ¥¡¤òÆ°Åª¤Ë¼èÆÀ
-	if ((img = Create_Image(width, height)) == NULL) {
-		free(bmp_line_data);
-		fclose(fp);
-		return NULL;
+	if (imgp->height > MAXHEIGHT) {
+		fprintf(stderr, "Error: Bmp_height = %ld > %d = MAXHEIGHT!\n", Bmp_height, MAXHEIGHT);
+		exit(1);
 	}
 
-	//Bitmap¥Õ¥¡¥¤¥EÎRGB¾ğÊó¤Ïº¸²¼¤«¤é±¦¤Ø¡¢²¼¤«¤é¾å¤ËÊÂ¤ó¤Ç¤¤¤E	
-	for (i = 0; i < height; i++) {
-		fread(bmp_line_data, 1, real_width, fp);
-		for (j = 0; j < width; j++) {
-			img->data[(height - i - 1)*width + j].b = bmp_line_data[j * 3];
-			img->data[(height - i - 1)*width + j].g = bmp_line_data[j * 3 + 1];
-			img->data[(height - i - 1)*width + j].r = bmp_line_data[j * 3 + 2];
+	Real_width = imgp->width * 3 + imgp->width % 4; /* 4byte ‹«ŠE‚É‚ ‚í‚¹‚é‚½‚ß‚ÉÀÛ‚Ì•‚ÌŒvZ */
+
+   /* ”z—ñ—Ìˆæ‚Ì“®“IŠm•Û. ¸”s‚µ‚½ê‡‚ÍƒGƒ‰[ƒƒbƒZ[ƒW‚ğo—Í‚µ‚ÄI—¹ */
+	if ((Bmp_Data = (unsigned char *)calloc(Real_width, sizeof(unsigned char))) == NULL) {
+		fprintf(stderr, "Error: Memory allocation failed for Bmp_Data!\n");
+		exit(1);
+	}
+
+	/* ‰æ‘œƒf[ƒ^“Ç‚İ‚İ */
+	for (i = 0; i < imgp->height; i++) {
+		fread(Bmp_Data, 1, Real_width, Bmp_Fp);
+		for (j = 0; j < imgp->width; j++) {
+			imgp->data[imgp->height - i - 1][j].b = Bmp_Data[j * 3];
+			imgp->data[imgp->height - i - 1][j].g = Bmp_Data[j * 3 + 1];
+			imgp->data[imgp->height - i - 1][j].r = Bmp_Data[j * 3 + 2];
 		}
 	}
 
-free(bmp_line_data);
+	/* “®“I‚ÉŠm•Û‚µ‚½”z—ñ—Ìˆæ‚Ì‰ğ•ú */
+	free(Bmp_Data);
 
-fclose(fp);
-
-return img;
+	/* ƒtƒ@ƒCƒ‹ƒNƒ[ƒY */
+	fclose(Bmp_Fp);
 }
 
-int Write_Bmp(char *filename, Image *img)
+/*
+   ŠÖ”–¼: WriteBmp
+   ˆø”  : char *filename, img *tp
+   •Ô‚è’l: void
+   “®ì  : 2ŸŒ³”z—ñ tp->data ‚Ì“à—e‚ğ‰æ‘œƒf[ƒ^‚Æ‚µ‚Ä, 24ƒrƒbƒg
+		   bmpŒ`®‚Ìƒtƒ@ƒCƒ‹ filename ‚É‘‚«o‚·.
+*/
+void WriteBmp(char *filename, img *tp) {
+
+	int i, j;
+	int Real_width;
+	FILE *Out_Fp = fopen(filename, "wb");  /* ƒtƒ@ƒCƒ‹ƒI[ƒvƒ“ */
+	unsigned char *Bmp_Data;     /* ‰æ‘œƒf[ƒ^‚ğ1s•ªŠi”[               */
+
+	if (Out_Fp == NULL) {
+		fprintf(stderr, "Error: file %s couldn\'t open for write!\n", filename);
+		exit(1);
+	}
+
+	Bmp_color = 24;
+	Bmp_header_size = HEADERSIZE;
+	Bmp_info_header_size = 40;
+	Bmp_planes = 1;
+
+	Real_width = tp->width * 3 + tp->width % 4;  /* 4byte ‹«ŠE‚É‚ ‚í‚¹‚é‚½‚ß‚ÉÀÛ‚Ì•‚ÌŒvZ */
+
+	/* ”z—ñ—Ìˆæ‚Ì“®“IŠm•Û. ¸”s‚µ‚½ê‡‚ÍƒGƒ‰[ƒƒbƒZ[ƒW‚ğo—Í‚µ‚ÄI—¹ */
+	if ((Bmp_Data = (unsigned char *)calloc(Real_width, sizeof(unsigned char))) == NULL) {
+		fprintf(stderr, "Error: Memory allocation failed for Bmp_Data!\n");
+		exit(1);
+	}
+
+	/* ƒwƒbƒ_î•ñ‚Ì€”õ */
+	Bmp_xppm = Bmp_yppm = 0;
+	Bmp_image_size = tp->height*Real_width;
+	Bmp_size = Bmp_image_size + HEADERSIZE;
+	Bmp_headbuf[0] = 'B'; Bmp_headbuf[1] = 'M';
+	memcpy(Bmp_headbuf + 2, &Bmp_size, sizeof(Bmp_size));
+	Bmp_headbuf[6] = Bmp_headbuf[7] = Bmp_headbuf[8] = Bmp_headbuf[9] = 0;
+	memcpy(Bmp_headbuf + 10, &Bmp_header_size, sizeof(Bmp_header_size));
+	Bmp_headbuf[11] = Bmp_headbuf[12] = Bmp_headbuf[13] = 0;
+	memcpy(Bmp_headbuf + 14, &Bmp_info_header_size, sizeof(Bmp_info_header_size));
+	Bmp_headbuf[15] = Bmp_headbuf[16] = Bmp_headbuf[17] = 0;
+	memcpy(Bmp_headbuf + 18, &tp->width, sizeof(Bmp_width));
+	memcpy(Bmp_headbuf + 22, &tp->height, sizeof(Bmp_height));
+	memcpy(Bmp_headbuf + 26, &Bmp_planes, sizeof(Bmp_planes));
+	memcpy(Bmp_headbuf + 28, &Bmp_color, sizeof(Bmp_color));
+	memcpy(Bmp_headbuf + 34, &Bmp_image_size, sizeof(Bmp_image_size));
+	memcpy(Bmp_headbuf + 38, &Bmp_xppm, sizeof(Bmp_xppm));
+	memcpy(Bmp_headbuf + 42, &Bmp_yppm, sizeof(Bmp_yppm));
+	Bmp_headbuf[46] = Bmp_headbuf[47] = Bmp_headbuf[48] = Bmp_headbuf[49] = 0;
+	Bmp_headbuf[50] = Bmp_headbuf[51] = Bmp_headbuf[52] = Bmp_headbuf[53] = 0;
+
+	/* ƒwƒbƒ_î•ñ‘‚«o‚µ */
+	fwrite(Bmp_headbuf, sizeof(unsigned char), HEADERSIZE, Out_Fp);
+
+	/* ‰æ‘œƒf[ƒ^‘‚«o‚µ */
+	for (i = 0; i < tp->height; i++) {
+		for (j = 0; j < tp->width; j++) {
+			Bmp_Data[j * 3] = tp->data[tp->height - i - 1][j].b;
+			Bmp_Data[j * 3 + 1] = tp->data[tp->height - i - 1][j].g;
+			Bmp_Data[j * 3 + 2] = tp->data[tp->height - i - 1][j].r;
+		}
+		for (j = tp->width * 3; j < Real_width; j++) {
+			Bmp_Data[j] = 0;
+		}
+		fwrite(Bmp_Data, sizeof(unsigned char), Real_width, Out_Fp);
+	}
+
+	/* “®“I‚ÉŠm•Û‚µ‚½”z—ñ—Ìˆæ‚Ì‰ğ•ú */
+	free(Bmp_Data);
+
+	/* ƒtƒ@ƒCƒ‹ƒNƒ[ƒY */
+	fclose(Out_Fp);
+}
+
+void WriteImg(char* filename, img* tp)
 {
 	int i, j;
-	FILE *fp;
-	int real_width;
-	unsigned char *bmp_line_data; 
-	unsigned char header_buf[HEADERSIZE]; //¥Ø¥Ã¥À¤ò³ÊÇ¼¤¹¤E
-	unsigned int file_size;
-	unsigned int offset_to_data;
-	unsigned long info_header_size;
-	unsigned int planes;
-	unsigned int color;
-	unsigned long compress;
-	unsigned long data_size;
-	long xppm;
-	long yppm;
+	int Real_width;
+	FILE *Out_Fp = fopen(filename, "wb");  /* ƒtƒ@ƒCƒ‹ƒI[ƒvƒ“ */
+	unsigned char *Bmp_Data;     /* ‰æ‘œƒf[ƒ^‚ğ1s•ªŠi”[               */
 
-	/*if ((fp = fopen(filename, "wb")) == NULL) {
-		fprintf(stderr, "Error: %s could not open.", filename);
-	}*/
-
-	fp = fopen(filename, "wb");
-
-	real_width = img->width * 3 + img->width % 4;
-
-	file_size = img->height * real_width + HEADERSIZE;
-	offset_to_data = HEADERSIZE;
-	info_header_size = INFOHEADERSIZE;
-	planes = 1;
-	color = 16;
-	compress = 0;
-	data_size = img->height * real_width;
-	xppm = 1;
-	yppm = 1;
-
-	header_buf[0] = 'B';
-	header_buf[1] = 'M';
-	memcpy(header_buf + 2, &file_size, sizeof(file_size));
-	header_buf[6] = 0;
-	header_buf[7] = 0;
-	header_buf[8] = 0;
-	header_buf[9] = 0;
-	memcpy(header_buf + 10, &offset_to_data, sizeof(file_size));
-	header_buf[11] = 0;
-	header_buf[12] = 0;
-	header_buf[13] = 0;
-
-	memcpy(header_buf + 14, &info_header_size, sizeof(info_header_size));
-	header_buf[15] = 0;
-	header_buf[16] = 0;
-	header_buf[17] = 0;
-	memcpy(header_buf + 18, &img->width, sizeof(img->width));
-	memcpy(header_buf + 22, &img->height, sizeof(img->height));
-	memcpy(header_buf + 26, &planes, sizeof(planes));
-	memcpy(header_buf + 28, &color, sizeof(color));
-	memcpy(header_buf + 30, &compress, sizeof(compress));
-	memcpy(header_buf + 34, &data_size, sizeof(data_size));
-	memcpy(header_buf + 38, &xppm, sizeof(xppm));
-	memcpy(header_buf + 42, &yppm, sizeof(yppm));
-	header_buf[46] = 0;
-	header_buf[47] = 0;
-	header_buf[48] = 0;
-	header_buf[49] = 0;
-	header_buf[50] = 0;
-	header_buf[51] = 0;
-	header_buf[52] = 0;
-	header_buf[53] = 0;
-
-	//¥Ø¥Ã¥À¤Î½ñ¤­¹ş¤ß
-	fwrite(header_buf, sizeof(unsigned char), HEADERSIZE, fp);
-
-	if ((bmp_line_data = (unsigned char *)malloc(sizeof(unsigned char)*real_width)) == NULL) {
-		fprintf(stderr, "Error: Allocation error.\n");
-		fclose(fp);
-		return 1;
+	if (Out_Fp == NULL) {
+		fprintf(stderr, "Error: file %s couldn\'t open for write!\n", filename);
+		exit(1);
 	}
 
-	//RGB¾ğÊó¤Î½ñ¤­¹ş¤ß
-	for (i = 0; i < img->height; i++) {
-		for (j = 0; j < img->width; j++) {
-			bmp_line_data[j * 3] = img->data[(img->height - i - 1)*img->width + j].b;
-			bmp_line_data[j * 3 + 1] = img->data[(img->height - i - 1)*img->width + j].g;
-			bmp_line_data[j * 3 + 2] = img->data[(img->height - i - 1)*img->width + j].r;
+	Real_width = tp->width * 3 + tp->width % 4;  /* 4byte ‹«ŠE‚É‚ ‚í‚¹‚é‚½‚ß‚ÉÀÛ‚Ì•‚ÌŒvZ */
+
+	/* ”z—ñ—Ìˆæ‚Ì“®“IŠm•Û. ¸”s‚µ‚½ê‡‚ÍƒGƒ‰[ƒƒbƒZ[ƒW‚ğo—Í‚µ‚ÄI—¹ */
+	if ((Bmp_Data = (unsigned char *)calloc(Real_width, sizeof(unsigned char))) == NULL) {
+		fprintf(stderr, "Error: Memory allocation failed for Bmp_Data!\n");
+		exit(1);
+	}
+
+	/* ƒwƒbƒ_î•ñ‚Ì€”õ */
+	
+
+	/* ƒwƒbƒ_î•ñ‘‚«o‚µ */
+	fwrite(tp, sizeof(unsigned char), HEADERSIZE, Out_Fp);
+
+	
+
+	/* ƒtƒ@ƒCƒ‹ƒNƒ[ƒY */
+	fclose(Out_Fp);
+}
+
+/*
+   ŠÖ”–¼: PrintBmpInfo
+   ˆø”  : char *filename
+   •Ô‚è’l: void
+   “®ì  : ˆø”‚Æ‚µ‚Ä—^‚¦‚ç‚ê‚éƒtƒ@ƒCƒ‹–¼‚ğ‚Â bmp Œ`®‚Ì‰æ‘œƒtƒ@ƒCƒ‹
+		   ‚Ì‘®«‚ğ‰æ–Ê‚Éo—Í‚·‚é.
+*/
+void PrintBmpInfo(char *filename) {
+
+	FILE *Bmp_Fp = fopen(filename, "rb");        /* ƒoƒCƒiƒŠƒ‚[ƒh“Ç‚İ‚İ—p‚ÉƒI[ƒvƒ“  */
+	if (Bmp_Fp == NULL) {
+		fprintf(stderr, "Error: file %s couldn\'t open for write!\n", filename);
+		exit(1);
+	}
+
+	fread(Bmp_headbuf, sizeof(unsigned char), HEADERSIZE, Bmp_Fp);
+
+	memcpy(&Bmp_type, Bmp_headbuf, sizeof(Bmp_type));
+	if (strncmp(Bmp_type, "BM", 2) != 0) {
+		fprintf(stderr, "Error: %s is not a bmp file.\n", filename);
+		exit(1);
+	}
+	memcpy(&Bmp_size, Bmp_headbuf + 2, sizeof(Bmp_size));
+	memcpy(&Bmp_width, Bmp_headbuf + 18, sizeof(Bmp_width));
+	memcpy(&Bmp_height, Bmp_headbuf + 22, sizeof(Bmp_height));
+	memcpy(&Bmp_color, Bmp_headbuf + 28, sizeof(Bmp_color));
+	memcpy(&Bmp_comp, Bmp_headbuf + 30, sizeof(Bmp_comp));
+	memcpy(&Bmp_image_size, Bmp_headbuf + 34, sizeof(Bmp_size));
+	memcpy(&Bmp_xppm, Bmp_headbuf + 38, sizeof(Bmp_xppm));
+	memcpy(&Bmp_yppm, Bmp_headbuf + 42, sizeof(Bmp_yppm));
+
+
+	printf("ƒtƒ@ƒCƒ‹–¼       = %s \n", filename);
+	printf("ƒtƒ@ƒCƒ‹ƒ^ƒCƒv   = %c%c \n", Bmp_type[0], Bmp_type[1]);
+	printf("ƒtƒ@ƒCƒ‹ƒTƒCƒY   = %ld (byte)\n", Bmp_size);
+	printf("•               = %ld (pixel)\n", Bmp_width);
+	printf("‚‚³             = %ld (pixel)\n", Bmp_height);
+	printf("F               = %d (bit)\n", Bmp_color);
+	printf("ˆ³k             = %ld\n", Bmp_comp);
+	printf("‰æ‘œ•”•ª‚ÌƒTƒCƒY = %ld (byte)\n", Bmp_image_size);
+	printf("…•½‰ğ‘œ“x       = %ld (ppm)\n", Bmp_xppm);
+	printf("‚’¼‰ğ‘œ“x       = %ld (ppm)\n", Bmp_yppm);
+
+	fclose(Bmp_Fp);
+}
+
+/*
+   ŠÖ”–¼: HMirror
+   ˆø”  : img *sp, img *tp
+   •Ô‚è’l: void
+   “®ì  : 2ŸŒ³”z—ñ tp->data ‚Ì‰æ‘œ‚ğ…•½•ûŒü‚Ì‹¾‰f‚ğ‚Æ‚Á‚½‚à‚Ì‚ğ
+		   2ŸŒ³”z—ñ sp->data ‚ÉŠi”[‚·‚é.
+*/
+void HMirror(img* sp, img *tp) {
+	int i, j;
+	long k;
+	for (i = 0; i < tp->height; i++)
+		for (j = 0; j < tp->width; j++)
+			sp->data[tp->height - i - 1][j] = tp->data[i][j];
+	sp->height = tp->height;
+	sp->width = tp->width;
+}
+
+/*
+   ŠÖ”–¼: VMirror
+   ˆø”  : img *sp, img *tp
+   •Ô‚è’l: void
+   “®ì  : 2ŸŒ³”z—ñ tp->data ‚Ì‰æ‘œ‚ğ‚’¼•ûŒü‚Ì‹¾‰f‚ğ‚Æ‚Á‚½‚à‚Ì‚ğ
+		   2ŸŒ³”z—ñ sp->data ‚ÉŠi”[‚·‚é.
+*/
+void VMirror(img *sp, img *tp) {
+	int i, j;
+	long k;
+	for (i = 0; i < tp->height; i++)
+		for (j = 0; j < tp->width; j++)
+			sp->data[i][tp->width - j - 1] = tp->data[i][j];
+	sp->height = tp->height;
+	sp->width = tp->width;
+}
+
+
+/*
+   ŠÖ”–¼: Rotate90
+   ˆø”  : int a, img *sp, img *tp
+   •Ô‚è’l: void
+   “®ì  : 2ŸŒ³”z—ñ tp->data ‚Ì‰æ‘œ‚ğ 90~a “xŒv‰ñ‚è‚É‰ñ“]‚µ‚½‚à‚Ì‚ğ
+		   2ŸŒ³”z—ñ sp->data ‚ÉŠi”[‚·‚é. ‚³‚ç‚É, ‰æ‘œ‚Ì•‚Æ‚‚³‚ğ,
+		   sp->height ‚Æ sp->width ‚Éİ’è.
+*/
+void Rotate90(int a, img *sp, img *tp) {
+	int i, j;
+	if ((a % 4) == 0) {
+		for (i = 0; i < tp->height; i++)
+			for (j = 0; j < tp->width; j++)
+				sp->data[i][j] = tp->data[i][j];
+		sp->width = tp->width;
+		sp->height = tp->height;
+	}
+	else if ((a % 4) == 1) {
+		for (i = 0; i < tp->height; i++)
+			for (j = 0; j < tp->width; j++)
+				sp->data[j][tp->height - i - 1] = tp->data[i][j];
+		sp->height = tp->width;
+		sp->width = tp->height;
+	}
+	else if ((a % 4) == 2) {
+		for (i = 0; i < tp->height; i++)
+			for (j = 0; j < tp->width; j++)
+				sp->data[tp->height - i - 1][tp->width - j - 1] = tp->data[i][j];
+		sp->width = tp->width;
+		sp->height = tp->height;
+	}
+	else {
+		for (i = 0; i < tp->height; i++)
+			for (j = 0; j < tp->width; j++)
+				sp->data[tp->width - j - 1][i] = tp->data[i][j];
+		sp->height = tp->width;
+		sp->width = tp->height;
+	}
+}
+
+
+/*
+   ŠÖ”–¼: Shrink
+   ˆø”  : int a, img *sp, img *tp
+   •Ô‚è’l: void
+   “®ì  : 2ŸŒ³”z—ñ tp->data ‚Ì‰æ‘œ‚Ì•‚Æ‚‚³‚ğ 1/a ”{‚µ‚½‰æ‘œ‚ğ
+		   2ŸŒ³”z—ñ sp->data ‚ÉŠi”[‚·‚é.
+*/
+void Shrink(int a, img *sp, img *tp) {
+	int i, j, k, l, w, h, count;
+	unsigned long tmp_r, tmp_g, tmp_b;
+
+	sp->height = tp->height / a + ((tp->height%a == 0) ? 0 : 1);
+	sp->width = tp->width / a + ((tp->width%a == 0) ? 0 : 1);
+
+	for (i = 0; i < sp->height; i++) {
+		h = (a*(i + 1) <= tp->height) ? a : tp->height - a * i;
+		for (j = 0; j < sp->width; j++) {
+			w = (a*(j + 1) <= tp->width) ? a : tp->width - a * j;
+			tmp_r = 0; tmp_g = 0; tmp_b = 0; count = 0;
+			for (k = 0; k < h; k++)
+				for (l = 0; l < w; l++) {
+					tmp_r += tp->data[i*a + k][j*a + l].r;
+					tmp_g += tp->data[i*a + k][j*a + l].g;
+					tmp_b += tp->data[i*a + k][j*a + l].b;
+					count++;
+				}
+			sp->data[i][j].r = (unsigned char)(tmp_r / count);
+			sp->data[i][j].g = (unsigned char)(tmp_g / count);
+			sp->data[i][j].b = (unsigned char)(tmp_b / count);
 		}
-		//RGB¾ğÊó¤E¥Ğ¥¤¥È¤ÎÇÜ¿ô¤Ë¹ç¤E»¤Æ¤¤¤E		
-		for (j = img->width * 3; j < real_width; j++) {
-			bmp_line_data[j] = 0;
+	}
+}
+
+/*
+   ŠÖ”–¼: Mosaic
+   ˆø”  : int a, img *sp, img *tp
+   •Ô‚è’l: void
+   “®ì  : 2ŸŒ³”z—ñ tp->data ‚Ì‰æ‘œ‚Éƒ‚ƒUƒCƒN‚ğ‚©‚¯‚½‰æ‘œ‚ğ
+		   2ŸŒ³”z—ñ sp->data ‚ÉŠi”[‚·‚é. ƒ‚ƒUƒCƒN‚Ì‘å‚«‚³‚Í
+		   a~a ‚Å‚ ‚é.
+*/
+void Mosaic(int a, img *sp, img *tp) {
+	int i, j, k, l, w, h, t_height, t_width, count;
+	unsigned long tmp_r, tmp_g, tmp_b;
+
+	sp->height = tp->height;
+	sp->width = tp->width;
+
+	t_height = tp->height / a + ((tp->height%a == 0) ? 0 : 1);
+	t_width = tp->width / a + ((tp->width%a == 0) ? 0 : 1);
+
+	for (i = 0; i < t_height; i++) {
+		h = (a*(i + 1) <= tp->height) ? a : tp->height - a * i;
+		for (j = 0; j < t_width; j++) {
+			w = (a*(j + 1) <= tp->width) ? a : tp->width - a * j;
+			tmp_r = 0; tmp_g = 0; tmp_b = 0; count = 0;
+			for (k = 0; k < h; k++)
+				for (l = 0; l < w; l++) {
+					tmp_r += tp->data[i*a + k][j*a + l].r;
+					tmp_g += tp->data[i*a + k][j*a + l].g;
+					tmp_b += tp->data[i*a + k][j*a + l].b;
+					count++;
+				}
+			tmp_r = (unsigned char)(tmp_r / count);
+			tmp_g = (unsigned char)(tmp_g / count);
+			tmp_b = (unsigned char)(tmp_b / count);
+			for (k = 0; k < h; k++)
+				for (l = 0; l < w; l++) {
+					sp->data[i*a + k][j*a + l].r = tmp_r;
+					sp->data[i*a + k][j*a + l].g = tmp_g;
+					sp->data[i*a + k][j*a + l].b = tmp_b;
+				}
 		}
-		fwrite(bmp_line_data, sizeof(unsigned char), real_width, fp);
 	}
 
-free(bmp_line_data);
-
-fclose(fp);
-
-return 0;
 }
 
-Image *Create_Image(int width, int height)
-{
-	Image *img;
+/*
+   ŠÖ”–¼: Gray
+   ˆø”  : img *sp, img *tp
+   •Ô‚è’l: void
+   “®ì  : 2ŸŒ³”z—ñ tp->data ‚Ì‰æ‘œ‚ğƒOƒŒƒCƒXƒP[ƒ‹•ÏŠ·‚µ‚Ä,
+		   2ŸŒ³”z—ñ sp->data ‚ÉŠi”[‚·‚é.
+*/
+void Gray(img *sp, img *tp) {
+	int i, j;
+	unsigned char tmp;
 
-	if ((img = (Image *)malloc(sizeof(Image))) == NULL) {
-		fprintf(stderr, "Allocation error\n");
-		return NULL;
+	sp->height = tp->height;
+	sp->width = tp->width;
+
+	for (i = 0; i < sp->height; i++) {
+		for (j = 0; j < sp->width; j++) {
+			tmp = (unsigned char)((tp->data[i][j].r + tp->data[i][j].g + tp->data[i][j].b) / 3);
+			sp->data[i][j].r = sp->data[i][j].g = sp->data[i][j].b = tmp;
+		}
 	}
 
-	if ((img->data = (Rgb*)malloc(sizeof(Rgb)*width*height)) == NULL) {
-		fprintf(stderr, "Allocation error\n");
-		free(img);
-		return NULL;
+}
+
+/*
+   ŠÖ”–¼: Diminish
+   ˆø”  : img *sp, img *tp, unsigned char x
+   •Ô‚è’l: void
+   “®ì  : 2ŸŒ³”z—ñ tp->data ‚Ì‰æ‘œ‚ğŒ¸’²‚µ (ŠeRGB‚Ì‹P“x‚É‚Â‚¢‚Ä
+		   2^x ‚Æƒ}ƒXƒN‚ğæ‚Á) ‚Ä, 2ŸŒ³”z—ñ sp->data ‚ÉŠi”[‚·‚é.
+*/
+void Diminish(img *sp, img *tp, unsigned char x) {
+	int i, j;
+	unsigned char y;
+
+	x = x % 8;
+	y = 255 << x;
+
+	sp->height = tp->height;
+	sp->width = tp->width;
+
+	for (i = 0; i < sp->height; i++) {
+		for (j = 0; j < sp->width; j++) {
+			sp->data[i][j].r = tp->data[i][j].r & y;
+			sp->data[i][j].g = tp->data[i][j].g & y;
+			sp->data[i][j].b = tp->data[i][j].b & y;
+		}
 	}
-
-	img->width = width;
-	img->height = height;
-
-	return img;
 }
-
-//Æ°Åª¤Ë¼èÆÀ¤·¤¿RGB¾ğÊó¤Î³«ÊE
-void Free_Image(Image *img)
-{
-	free(img->data);
-	free(img);
-}
-

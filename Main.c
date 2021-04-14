@@ -1,43 +1,30 @@
-#define _CRT_SECURE_NO_WARNINGS
+#include  "bitmap.h"
 
+main(int argc, char** argv) {
+	int i, j;
 
-#include"bitmap.h"
-#include<stdlib.h>
-#include<stdio.h>
-#include <string.h>
+	/* 画像データを格納する構造体変数へのポインタ  */
+	img *tmp1, *tmp2;
 
-void pop(char *s1, char *s2)
-{
-	char *p = s1;
-	p = strstr(s1, s2);
-	if (p != NULL)
-	{
-		strcpy(p, p + strlen(s2));
-		pop(p + 1, s2);
-	}
-}
+	tmp1 = (img *)malloc(sizeof(img));
+	tmp2 = (img *)malloc(sizeof(img));
 
-int main(int argc, char *argv[])
-{
-	char input[] = "input_image.bmp";
-	int len = strlen(input);
+	/* コマンドライン引数で与えられた文字列を filename に設定 */
+	char *filename = argv[1];
 
-	Image *colorimg;
+	tmp1->height = 200;
+	tmp1->width = 300;
+	for (i = 0; i < tmp1->height; i++)
+		for (j = 0; j < tmp1->width; j++) {
+			tmp1->data[i][j].r = rand() % 256;
+			tmp1->data[i][j].g = rand() % 256;
+			tmp1->data[i][j].b = rand() % 256;
+		}
 
-	if ((colorimg = Read_Bmp(input)) == NULL) {
-		exit(1);
-	}
+	WriteBmp("noise.bmp", tmp1);
 
-	pop(input, ".bmp");
+	WriteImg("test.img", tmp1);
 
-	strcat(input, ".jpg");
+	PrintBmpInfo("noise.bmp");
 
-	if (Write_Bmp(input, colorimg))
-	{
-		exit(1);
-	}
-
-	Free_Image(colorimg);
-
-	return 0;
 }
